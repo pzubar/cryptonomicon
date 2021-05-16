@@ -1,5 +1,7 @@
 # cryptonomicon
 
+My first Vue project inspired by Illya Klymov's YouTube course
+
 ## Project setup
 ```
 npm install
