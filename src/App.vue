@@ -80,7 +80,7 @@
             :key="t.name"
             @click="selectedElement = t"
             :class="{
-              'border-4': selectedElement === t,
+              'border-4': selectedElement === t
             }"
             class="
               bg-white
@@ -186,23 +186,37 @@ export default {
   name: "App",
   data() {
     return {
-      ticker: "default",
-      tickers: [
-        { name: "BTC", price: "123" },
-        { name: "ETH", price: "321" },
-      ],
-      selectedElement: null,
+      graph: [],
+      ticker: "",
+      tickers: [],
+      selectedElement: null
     };
   },
   methods: {
     add() {
-      this.tickers.push({ name: this.ticker, price: "-" });
+      const newTicker = { name: this.ticker, price: "-" };
+      this.tickers.push(newTicker);
+
+      setInterval(async () => {
+        const response = await fetch(
+          `https://min-api.cryptocompare.com/data/price?fsym=${newTicker.name}&tsyms=USD`
+        );
+        const data = await response.json();
+
+        this.tickers.find((ticker) => ticker.name === newTicker.name).price =
+          data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
+
+        if (this.selectedElement?.name === newTicker.name) {
+          this.graph.push(data.USD);
+        }
+      }, 3000);
+
       this.ticker = "";
     },
     handleDelete(ticker) {
       this.tickers = this.tickers.filter((t) => t !== ticker);
-    },
-  },
+    }
+  }
 };
 </script>
 
