@@ -11,7 +11,7 @@
             <div class="mt-1 relative rounded-md shadow-md">
               <input
                 v-model="ticker"
-                v-on:keydown.enter="add"
+                @keydown.enter="add"
                 type="text"
                 name="wallet"
                 id="wallet"
@@ -33,7 +33,7 @@
           </div>
         </div>
         <button
-          v-on:click="add"
+          @click="add"
           type="button"
           class="
             my-4
@@ -76,20 +76,13 @@
         <hr class="w-full border-t border-gray-600 my-4" />
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div
-            v-for="t of tickers"
+            v-for="t in tickers"
             :key="t.name"
-            @click="selectedElement = t"
+            @click="select(t)"
             :class="{
               'border-4': selectedElement === t
             }"
-            class="
-              bg-white
-              overflow-hidden
-              shadow
-              rounded-lg
-              border-purple-800 border-solid
-              cursor-pointer
-            "
+            class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer"
           >
             <div class="px-4 py-5 sm:p-6 text-center">
               <dt class="text-sm font-medium text-gray-500 truncate">
@@ -102,23 +95,7 @@
             <div class="w-full border-t border-gray-200"></div>
             <button
               @click.stop="handleDelete(t)"
-              class="
-                flex
-                items-center
-                justify-center
-                font-medium
-                w-full
-                bg-gray-100
-                px-4
-                py-4
-                sm:px-6
-                text-md text-gray-500
-                hover:text-gray-600
-                hover:bg-gray-200
-                hover:opacity-20
-                transition-all
-                focus:outline-none
-              "
+              class="flex items-center justify-center font-medium w-full bg-gray-100 px-4 py-4 sm:px-6 text-md text-gray-500 hover:text-gray-600 hover:bg-gray-200 hover:opacity-20 transition-all focus:outline-none"
             >
               <svg
                 class="h-5 w-5"
@@ -131,9 +108,8 @@
                   fill-rule="evenodd"
                   d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
                   clip-rule="evenodd"
-                ></path>
-              </svg>
-              Удалить
+                ></path></svg
+              >Удалить
             </button>
           </div>
         </dl>
@@ -144,15 +120,17 @@
           {{ selectedElement.name }} - USD
         </h3>
         <div class="flex items-end border-gray-600 border-b border-l h-64">
-          <div class="bg-purple-800 border w-10 h-24"></div>
-          <div class="bg-purple-800 border w-10 h-32"></div>
-          <div class="bg-purple-800 border w-10 h-48"></div>
-          <div class="bg-purple-800 border w-10 h-16"></div>
+          <div
+            v-for="(bar, idx) in normalizeGraph()"
+            :key="idx"
+            :style="{ height: `${bar}%` }"
+            class="bg-purple-800 border w-10"
+          ></div>
         </div>
         <button
+          @click="selectedElement = null"
           type="button"
           class="absolute top-0 right-0"
-          @click="selectedElement = null"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -164,7 +142,7 @@
             x="0"
             y="0"
             viewBox="0 0 511.76 511.76"
-            style="enable-background: new 0 0 512 512"
+            style="enable-background:new 0 0 512 512"
             xml:space="preserve"
           >
             <g>
@@ -184,37 +162,56 @@
 <script>
 export default {
   name: "App",
+
   data() {
     return {
-      graph: [],
       ticker: "",
       tickers: [],
-      selectedElement: null
+      selectedElement: null,
+      graph: []
     };
   },
+
   methods: {
     add() {
-      const newTicker = { name: this.ticker, price: "-" };
-      this.tickers.push(newTicker);
+      const currentTicker = {
+        name: this.ticker,
+        price: "-"
+      };
 
+      this.tickers.push(currentTicker);
       setInterval(async () => {
-        const response = await fetch(
-          `https://min-api.cryptocompare.com/data/price?fsym=${newTicker.name}&tsyms=USD`
+        const f = await fetch(
+          `https://min-api.cryptocompare.com/data/price?fsym=${currentTicker.name}&tsyms=USD&api_key=ce3fd966e7a1d10d65f907b20bf000552158fd3ed1bd614110baa0ac6cb57a7e`
         );
-        const data = await response.json();
+        const data = await f.json();
 
-        this.tickers.find((ticker) => ticker.name === newTicker.name).price =
+        // currentTicker.price =  data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
+        this.tickers.find(t => t.name === currentTicker.name).price =
           data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
 
-        if (this.selectedElement?.name === newTicker.name) {
+        if (this.selectedElement?.name === currentTicker.name) {
           this.graph.push(data.USD);
         }
-      }, 3000);
-
+      }, 5000);
       this.ticker = "";
     },
-    handleDelete(ticker) {
-      this.tickers = this.tickers.filter((t) => t !== ticker);
+
+    select(ticker) {
+      this.selectedElement = ticker;
+      this.graph = [];
+    },
+
+    handleDelete(tickerToRemove) {
+      this.tickers = this.tickers.filter(t => t !== tickerToRemove);
+    },
+
+    normalizeGraph() {
+      const maxValue = Math.max(...this.graph);
+      const minValue = Math.min(...this.graph);
+      return this.graph.map(
+        price => 5 + ((price - minValue) * 95) / (maxValue - minValue)
+      );
     }
   }
 };
